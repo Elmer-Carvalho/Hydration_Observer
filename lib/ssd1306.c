@@ -153,28 +153,43 @@ void ssd1306_vline(ssd1306_t *ssd, uint8_t x, uint8_t y0, uint8_t y1, bool value
 }
 
 // Função para desenhar um caractere
-void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y)
-{
-  uint16_t index = 0;
-  char ver=c;
-  if (c >= 'A' && c <= 'Z')
-  {
-    index = (c - 'A' + 11) * 8; // Para letras maiúsculas
-  }else  if (c >= '0' && c <= '9')
-  {
-    index = (c - '0' + 1) * 8; // Adiciona o deslocamento necessário
-  }else if(c >= 'a' && c <= 'z'){
-    index = (c - 'a' + 37) * 8; // Para letras minúsculas
-  }
-  
-  for (uint8_t i = 0; i < 8; ++i)
-  {
-    uint8_t line = font[index + i];
-    for (uint8_t j = 0; j < 8; ++j)
-    {
-      ssd1306_pixel(ssd, x + i, y + j, line & (1 << j));
+void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y) {
+    uint16_t index = 0;
+
+    // Mapear caracteres ASCII (32-126)
+    if (c >= 32 && c <= 126) {
+        index = (c - 32) * 8; // Desloca para começar no espaço (32)
     }
-  }
+    // Mapear caracteres acentuados usando índices numéricos
+    else {
+        switch ((uint8_t)c) {
+            case 127: index = (127 - 32) * 8; break; // á
+            case 128: index = (128 - 32) * 8; break; // â
+            case 129: index = (129 - 32) * 8; break; // ã
+            case 130: index = (130 - 32) * 8; break; // à
+            case 131: index = (131 - 32) * 8; break; // ç
+            case 132: index = (132 - 32) * 8; break; // é
+            case 133: index = (133 - 32) * 8; break; // ê
+            case 134: index = (134 - 32) * 8; break; // í
+            case 135: index = (135 - 32) * 8; break; // ó
+            case 136: index = (136 - 32) * 8; break; // ô
+            case 137: index = (137 - 32) * 8; break; // õ
+            case 138: index = (138 - 32) * 8; break; // ú
+            case 139: index = (139 - 32) * 8; break; // ü
+            default: index = 0; // Usa espaço para caracteres não suportados
+        }
+    }
+
+    // Renderizar o caractere como linhas horizontais, com inversão vertical e horizontal correta
+    for (uint8_t row = 0; row < 8; ++row) {
+        // Acessar bytes na ordem invertida: font[index + 7] é o topo, font[index + 0] é a base
+        uint8_t line = font[index + (7 - row)];
+        for (uint8_t col = 0; col < 8; ++col) {
+            // Mapear bits da esquerda para a direita: bit 7 à esquerda, bit 0 à direita
+            bool pixel = (line & (1 << (7 - col))) != 0;
+            ssd1306_pixel(ssd, x + col, y + row, pixel);
+        }
+    }
 }
 
 // Função para desenhar uma string
